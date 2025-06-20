@@ -10,6 +10,7 @@ Tutorial: https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data
 Usage:
     $ python path/to/train.py --data coco128.yaml --weights yolov5s.pt --img 640  # from pretrained (RECOMMENDED)
     $ python path/to/train.py --data coco128.yaml --weights '' --cfg yolov5s.yaml --img 640  # from scratch
+    $ /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python /home/faith/yolov5/train.py --data coco_person.yaml --weights '' --cfg yolov5n-ghost.yaml --img 320
 """
 
 import argparse

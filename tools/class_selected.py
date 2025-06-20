@@ -54,9 +54,11 @@ def move_images(img_dir, dist_img_dir, dist_l_path):
             image_file = os.path.splitext(file)[0] + ".jpg"  # txt后缀替换为jpg
             src = os.path.join(img_dir, image_file)
             dst = os.path.join(dist_img_dir, image_file)
-            shutil.move(src, dst)
-            print("move images: %d/%d" % (i+1, total))
-
+            try:
+                shutil.move(src, dst)
+                print("move images: %d/%d" % (i+1, total))
+            except Exception as e:
+                print(e)
 
 
 base_dir = '/mnt/d/迅雷下载/coco2017labels/coco'

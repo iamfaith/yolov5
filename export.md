@@ -44,4 +44,7 @@ Source: Conversation with Copilot, 6/26/2024
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python detect_clip.py --weights /home/faith/yolov5/yolov5l-6.2.pt --source /home/faith/faith/Desktop/游泳视频/222.mp4 --classes 0 --conf-thres 0.35
 
 
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python detect_clip.py --weights /home/faith/yolov5/yolov5l-6.2.pt --source /home/faith/faith/Desktop/游泳视频/action2/exp5/11111.mp4 --classes 0 --conf-thres 0.25
+
+
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python -m pip  install ffmpeg moviepy --upgrade

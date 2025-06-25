@@ -47,12 +47,12 @@ from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode, time_sync
 
 
-def clip_video(video_path, segments, output_path):
+def clip_video(video_path, segments, output_path, save_prev=2):
     print(segments)
     clips = []
     video = VideoFileClip(video_path).set_fps(24)
     for start, end in segments:
-        clips.append(video.subclip(start, end))
+        clips.append(video.subclip(max(start - save_prev, 0), end))
     final_clip = concatenate_videoclips(clips)
     final_clip.write_videofile(output_path, fps=24, codec="libx264")
 
@@ -159,10 +159,7 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-            if len(det):
-                        
-                time_with_detect = dataset.frame / dataset.fps
-                clips.append(time_with_detect)
+            if len(det):    
                 
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -172,10 +169,13 @@ def run(
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
+
+                need_save = False
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                     if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        # xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
@@ -186,6 +186,13 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                    
+                    if xywh[2] > 0.45: # width > 0.5
+                        need_save = True
+                        print(xywh)
+                if need_save:
+                    time_with_detect = dataset.frame / dataset.fps
+                    clips.append(time_with_detect)        
 
             # Stream results
             im0 = annotator.result()

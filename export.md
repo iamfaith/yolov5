@@ -8,6 +8,7 @@
 python export.py --weights ./yolov5n.pt --img 640 --batch 1 --include onnx
 
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights /home/faith/yolov5/runs/train/exp3/weights/best.pt  --img 320 --batch 1 --include onnx
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights /home/faith/yolov5/runs/train/exp5/weights/best.pt  --img 384 768 --batch 1 --include onnx
 ```
 
 3. **处理动态和静态尺寸**：如果你需要导出具有动态尺寸的模型，可以添加 `--dynamic` 参数。这对于在不同尺寸的图像上运行模型时非常有用。
@@ -32,4 +33,15 @@ Source: Conversation with Copilot, 6/26/2024
 (2) 手把手教学！TensorRT部署实战：YOLOv5的ONNX模型部署 - 文章 - 开发者社区 - 火山引擎. https://developer.volcengine.com/articles/7382309274862485554.
 (3) YOLOV5模型转onnx并推理 - 阿里云开发者社区. https://developer.aliyun.com/article/1267277.
 (4) YOLOV5模型转onnx并推理_yolov5转onnx-CSDN博客. https://blog.csdn.net/qq128252/article/details/127105463.
-(5) 从 Yolov5 到 ONNX：模型转换与 Python 部署-百度开发者中心. https://developer.baidu.com/article/details/2788892.
+(5) 从 Yolov5 到 ONNX：模型转换与 Python 部署-百度开发者中心. https://developer.baidu.com/article/details/2788892o
+
+
+
+
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python detect.py --weights /home/faith/yolov5/yolov5l-6.2.pt --source /home/faith/faith/Desktop/游泳视频/clips/6.24.mp4 --classes 0 --conf-thres 0.35
+
+
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python detect_clip.py --weights /home/faith/yolov5/yolov5l-6.2.pt --source /home/faith/faith/Desktop/游泳视频/222.mp4 --classes 0 --conf-thres 0.35
+
+
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python -m pip  install ffmpeg moviepy --upgrade

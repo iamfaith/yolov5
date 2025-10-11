@@ -12,7 +12,7 @@ python export.py --weights ./yolov5n.pt --img 640 --batch 1 --include onnx
 
 
 
-/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights yolov5n6-6.2.pt --img 320 --batch 1 --include onnx  --simplify
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights yolov5n6-6.2.pt --img 384 768 --batch 1 --include onnx  --simplify
 ```
 
 3. **处理动态和静态尺寸**：如果你需要导出具有动态尺寸的模型，可以添加 `--dynamic` 参数。这对于在不同尺寸的图像上运行模型时非常有用。

@@ -8,15 +8,11 @@ Copyright (c) 2024 Yakhyokhuja Valikhujaev. All rights reserved.
 import cv2
 import onnxruntime
 import numpy as np
-
-import torch
-import torchvision
-
 from typing import Tuple, List
 
 
 class YOLOv5:
-    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'torchvision') -> None:
+    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn') -> None:
         """YOLOv5 class initialization
 
         Args:
@@ -133,6 +129,8 @@ class YOLOv5:
 
         # Apply NMS
         if self.nms_mode == "torchvision":
+            import torch
+            import torchvision
             # better performance
             indices = torchvision.ops.nms(torch.tensor(boxes), torch.tensor(scores), self.iou_threshold).numpy()
         else:

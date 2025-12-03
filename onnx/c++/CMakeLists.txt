@@ -2,15 +2,13 @@ cmake_minimum_required(VERSION 3.0.0)
 project(yolo_ort)
 
 set(ONNXRUNTIME_DIR /home/faith/onnxruntime-linux-x64-1.23.2/onnxruntime-linux-x64-1.23.2)
-
-option(ONNXRUNTIME_DIR "Path to built ONNX Runtime directory." STRING)
 message(STATUS "ONNXRUNTIME_DIR: ${ONNXRUNTIME_DIR}")
 
 find_package(OpenCV REQUIRED)
 
 include_directories(
     "include/"
-    ${ONNXRUNTIME_DIR}/include
+    # ${ONNXRUNTIME_DIR}/include
 )
 
 add_executable(yolo_ort

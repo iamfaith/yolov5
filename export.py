@@ -117,7 +117,7 @@ def export_onnx(model, im, file, opset, train, dynamic, simplify, prefix=colorst
 
         LOGGER.info(f'\n{prefix} starting export with onnx {onnx.__version__}...')
         f = file.with_suffix('.onnx')
-
+        print("------", dynamic, simplify)
         torch.onnx.export(
             model.cpu() if dynamic else model,  # --dynamic only compatible with cpu
             im.cpu() if dynamic else im,
@@ -142,12 +142,19 @@ def export_onnx(model, im, file, opset, train, dynamic, simplify, prefix=colorst
         model_onnx = onnx.load(f)  # load onnx model
         onnx.checker.check_model(model_onnx)  # check onnx model
 
+        from onnx import shape_inference
+        # 执行 shape 推理
+        inferred_model = shape_inference.infer_shapes(model_onnx)
+
+        # # 保存新模型
+        # onnx.save(inferred_model, "your_model_inferred.onnx")
+
         # Metadata
         d = {'stride': int(max(model.stride)), 'names': model.names}
         for k, v in d.items():
-            meta = model_onnx.metadata_props.add()
+            meta = inferred_model.metadata_props.add()
             meta.key, meta.value = k, str(v)
-        onnx.save(model_onnx, f)
+        onnx.save(inferred_model, f)
 
         # Simplify
         if simplify:
@@ -495,11 +502,9 @@ def run(
         assert device.type != 'cpu' or coreml, '--half only compatible with GPU export, i.e. use --device 0'
         assert not dynamic, '--half not compatible with --dynamic, i.e. use either --half or --dynamic but not both'
     model = attempt_load(weights, device=device, inplace=True, fuse=True)  # load FP32 model
-    nc, names = model.nc, model.names  # number of classes, class names
 
     # Checks
     imgsz *= 2 if len(imgsz) == 1 else 1  # expand
-    assert nc == len(names), f'Model class count {nc} != len(names) {len(names)}'
     if optimize:
         assert device.type == 'cpu', '--optimize not compatible with cuda devices, i.e. use --device cpu'
 
@@ -520,7 +525,7 @@ def run(
         y = model(im)  # dry runs
     if half and not coreml:
         im, model = im.half(), model.half()  # to FP16
-    shape = tuple(y[0].shape)  # model output shape
+    shape = tuple((y[0] if isinstance(y, tuple) else y).shape)  # model output shape
     LOGGER.info(f"\n{colorstr('PyTorch:')} starting from {file} with output shape {shape} ({file_size(file):.1f} MB)")
 
     # Exports

@@ -62,10 +62,11 @@ def move_images(img_dir, dist_img_dir, dist_l_path):
 
 
 base_dir = '/mnt/d/迅雷下载/coco2017labels/coco'
+base_dir = '/home/faith/coco2017labels-person/coco'
 
 
-labels_path = f"{base_dir}/labels/train2017"
-dist_labels_path = f"{base_dir}/labels/train"
+labels_path = f"{base_dir}/labels/val2017"
+dist_labels_path = f"{base_dir}/labels/val"
 dist_class = '0'
 
 # 第一步：将含有指定class的txt文件移动到指定目录
@@ -76,6 +77,6 @@ move_txt_files(labels_path, e_files, dist_labels_path)
 delete_other_class(dist_labels_path, dist_class)
 
 # 第三步：将含有指定class的images移动到指定目录
-images_dir = f"{base_dir}/images/train2017"
-dist_images_dir = f"{base_dir}/images/train"
+images_dir = f"{base_dir}/images/val2017"
+dist_images_dir = f"{base_dir}/images/val"
 move_images(images_dir, dist_images_dir, dist_labels_path)

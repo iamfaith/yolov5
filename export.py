@@ -118,6 +118,17 @@ def export_onnx(model, im, file, opset, train, dynamic, simplify, prefix=colorst
         LOGGER.info(f'\n{prefix} starting export with onnx {onnx.__version__}...')
         f = file.with_suffix('.onnx')
         print("------", dynamic, simplify)
+
+        # Determine output names and dynamic axes based on model type
+        detect = model.model[-1] if hasattr(model, 'model') else None
+        if isinstance(detect, Detect):
+            nl = detect.nl
+            output_names = [f'output{i}' for i in range(nl)]
+            dynamic_axes_output = {f'output{i}': {0: 'batch', 1: 'anchors', 2: 'y', 3: 'x'} for i in range(nl)}
+        else:
+            output_names = ['output']
+            dynamic_axes_output = {'output': {0: 'batch', 1: 'anchors'}}
+
         torch.onnx.export(
             model.cpu() if dynamic else model,  # --dynamic only compatible with cpu
             im.cpu() if dynamic else im,
@@ -127,15 +138,17 @@ def export_onnx(model, im, file, opset, train, dynamic, simplify, prefix=colorst
             training=torch.onnx.TrainingMode.TRAINING if train else torch.onnx.TrainingMode.EVAL,
             do_constant_folding=not train,
             input_names=['images'],
-            output_names=['output'],
+            # output_names=['output'],
+            output_names=output_names,
             dynamic_axes={
                 'images': {
                     0: 'batch',
                     2: 'height',
                     3: 'width'},  # shape(1,3,640,640)
-                'output': {
-                    0: 'batch',
-                    1: 'anchors'}  # shape(1,25200,85)
+                # 'output': {
+                #     0: 'batch',
+                #     1: 'anchors'}  # shape(1,25200,85)
+                **dynamic_axes_output
             } if dynamic else None)
 
         # Checks

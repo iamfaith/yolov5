@@ -1,1 +1,2 @@
 from .yolov5 import YOLOv5
+from .yolov5_new import YOLOv5 as YOLOv5_new

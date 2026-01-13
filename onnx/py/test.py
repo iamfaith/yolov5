@@ -11,7 +11,8 @@ from models import YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
 weights = "/home/faith/yolov5/yolov5n6-6.2.onnx"
-# weights = '/home/faith/yolov5/exp4/weights/best.onnx'
+weights = '/home/faith/yolov5/exp4/weights/best.onnx'
+# weights = '/home/faith/yolov5/exp4/weights/full_best.onnx'
 # weights = '/home/faith/yolov5/exp3/weights/best.onnx'
 source = "/home/faith/fux.png"
 source = '/home/faith/yolov5/data/images/zidane.jpg'
@@ -26,7 +27,8 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 
 model = YOLOv5(weights, conf_thres, iou_thres, max_det)
-img_size = check_img_size(img_size, s=model.stride)
+img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
+print(img_size)
 dataset = LoadMedia(source, img_size=img_size)
 
 

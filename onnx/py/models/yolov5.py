@@ -27,6 +27,19 @@ class YOLOv5:
         self.max_det = max_det
         self.nms_mode = nms_mode
 
+        # YOLOv5 default anchors and strides
+        
+
+        self.anchors = [
+            np.array([[10., 13.], [16., 30.], [33., 23.]], dtype=np.float32),
+            np.array([[30., 61.], [62., 45.], [59., 119.]], dtype=np.float32),
+            np.array([[116., 90.], [156., 198.], [373., 326.]], dtype=np.float32)
+        ]
+        self.na = 3 #self.anchors[0].shape[0]
+        self.grid = [None] * self.na
+        self.anchor_grid = [None] * self.na
+        
+
         # Initialize model
         self._initialize_model(model_path=model_path)
 
@@ -76,8 +89,15 @@ class YOLOv5:
 
             # Get model metadata
             metadata = self.session.get_modelmeta().custom_metadata_map
-            self.stride = int(metadata.get("stride", 32))  # Default stride value
+            if len(self.output_names) == 1:
+                self.stride = int(metadata.get("stride", 32))  # Default stride value
+            else:
+                self.stride = [8, 16, 32]
+                # 归一化 anchors
+                self.anchors = [a / s for a, s in zip(self.anchors, self.stride)]
+            
             self.names = eval(metadata.get("names", "{}"))  # Default to empty dict
+            self.nc = len(self.names)
         except Exception as e:
             print(f"Failed to load the model: {e}")
             raise
@@ -99,20 +119,79 @@ class YOLOv5:
 
         return image_tensor
 
-    def postprocess(self, prediction: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def postprocess(self, prediction: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Post processing
 
         Args:
-            prediction (np.ndarray): Model raw output (shape: [1, 25200, 85])
+            prediction (List[np.ndarray]): Model raw outputs
 
         Returns:
             Tuple: boxes, confidence scores, class indexes
         """
-        # Squeeze the output to match the expected shape
-        outputs = np.squeeze(prediction[0])
+        if len(prediction) == 1:
+            # Single output: assume concatenated (1, 25200, 85)
+            outputs = np.squeeze(prediction[0])
+        else:
+            # Sort prediction by size descending (largest first, corresponding to smallest stride)
+            prediction = sorted(prediction, key=lambda p: p.shape[2] * p.shape[3], reverse=True)
+            # Multiple outputs: process each layer
+            outputs = []
+            for i, pred in enumerate(prediction):
+                y = pred[0]  # (na, ny, nx, no)
+                na, ny, nx, no = y.shape
+
+
+                # Make grid
+                # xv, yv = np.meshgrid(np.arange(nx), np.arange(ny))
+                # grid = np.stack((xv, yv), 2).astype(np.float32) - 0.5  # (ny, nx, 2)
+                # grid = np.expand_dims(grid, 0)  # (1, ny, nx, 2)
+
+                # Anchor grid
+                # anchors = np.array(self.anchors[i]).reshape(na, 2)  # (na, 2)
+                # anchor_grid = np.zeros((na, ny, nx, 2))  # (na, ny, nx, 2)
+                # for a in range(na):
+                    # anchor_grid[a, :, :, :] = anchors[a] * self.stride[i]
+
+                self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+
+                # Split y into xy, wh, conf
+                xy = y[..., :2]
+                wh = y[..., 2:4]
+                conf = y[..., 4:]
+
+                # Compute coordinates
+                xy = (xy * 2 + self.grid[i]) * self.stride[i]
+                wh = (wh * 2) ** 2 * self.anchor_grid[i]
+
+
+                # multiply batch size
+                # conf = conf[None, ...]
+
+                # single batch
+                xy = np.squeeze(xy, axis=0)
+                wh = np.squeeze(wh, axis=0)
+                # Concatenate back
+                y_processed = np.concatenate((xy, wh, conf), axis=-1)
+                
+                # multiply batch size                
+                # bs = 1
+                # y_processed = y_processed.reshape(bs, -1, no)
+
+                # single batch  
+                y_processed = y_processed.reshape(-1, no)
+
+                outputs.append(y_processed)
+
+            # single batch
+            outputs = np.concatenate(outputs, axis=0)
+
+            # multiply batch size
+            # Concatenate all layers
+            # outputs = np.concatenate(outputs, axis=1)
+            # outputs = np.squeeze(outputs[0])
 
         # Extract boxes, scores, and classes
-        boxes = outputs[:, :4]  # x1, y1, x2, y2
+        boxes = outputs[:, :4]  # xywh
         scores = outputs[:, 4]  # confidence scores
         classes = outputs[:, 5:]  # class probabilities
 
@@ -155,3 +234,14 @@ class YOLOv5:
         y[..., 2] = x[..., 0] + x[..., 2] / 2
         y[..., 3] = x[..., 1] + x[..., 3] / 2
         return y
+
+    def _make_grid(self, nx=20, ny=20, i=0):
+        shape = (1, self.na, ny, nx, 2)
+        y = np.arange(ny, dtype=np.float32)
+        x = np.arange(nx, dtype=np.float32)
+        yv, xv = np.meshgrid(y, x, indexing='ij')
+        grid = np.stack((xv, yv), axis=2)
+        grid = np.broadcast_to(grid, shape) - 0.5
+        anchor_grid = (self.anchors[i] * self.stride[i]).reshape((1, self.na, 1, 1, 2))
+        anchor_grid = np.broadcast_to(anchor_grid, shape)
+        return grid, anchor_grid

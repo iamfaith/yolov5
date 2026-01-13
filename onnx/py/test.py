@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Tuple
 from time import time
 from models import YOLOv5_new as YOLOv5
+# from models import YOLOv5_new_backup as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
 weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms

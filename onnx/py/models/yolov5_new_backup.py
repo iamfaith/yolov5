@@ -166,38 +166,59 @@ class YOLOv5:
                 y = pred[0]  # (na, ny, nx, no)
                 
                 if len(prediction[0].shape) == 4:
+
                     _, ny, nx = y.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
                     y = y.reshape(self.na, -1, ny, nx)
-                    y = np.transpose(y, (0, 2, 3, 1))
+                    _, no, _, _ = y.shape
+                    
+                    scores = y[:, 4, ...] # confidence scores
+                    mask = scores > self.conf_threshold
+                    if not mask.any():
+                        continue
+
+                    # 原始做法，tranpose再过滤，现在改为直接过滤
+                    # y = np.transpose(y, (0, 2, 3, 1))
+                    # y = np.ascontiguousarray(y)
+                    
+                    mask_flat = mask.ravel() 
+                    # 24, 6 可能变成两维
+                    y = np.transpose(y, (0, 2, 3, 1))[mask]
+
                     y = np.ascontiguousarray(y)
+                    xy_filtered = y[..., :2]
+                    wh_filtered = y[..., 2:4]
+                    conf_filtered = y[..., 4:]
+                    
+                elif len(prediction[0].shape) == 5: # with transpose
+                    na, ny, nx, no = y.shape
 
-            
-                # self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+                    # self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
 
-                conf = y[..., 4:]
+                    # Split y into xy, wh, conf
+                    xy = y[..., :2]
+                    wh = y[..., 2:4]
+                    conf = y[..., 4:]
 
-                # Apply confidence threshold mask
-                scores = conf[..., 0]  # confidence scores
-                mask = scores > self.conf_threshold
-                if not mask.any():
-                    continue
-
-                # Split y into xy, wh, conf
-                xy = y[..., :2]
-                wh = y[..., 2:4]
-                na, ny, nx, no = y.shape
+                    # Apply confidence threshold mask
+                    scores = conf[..., 0]  # confidence scores
+                    mask = scores > self.conf_threshold
+                    if not mask.any():
+                        continue
 
 
-                # Flatten mask and arrays for filtering
-                mask_flat = mask.ravel()  # (na*ny*nx,)
-                xy_flat = xy.reshape(-1, 2)  # (na*ny*nx, 2)
-                wh_flat = wh.reshape(-1, 2)  # (na*ny*nx, 2)
-                conf_flat = conf.reshape(-1, conf.shape[-1])  # (na*ny*nx, nc+1)
+                    # Flatten mask and arrays for filtering
+                    mask_flat = mask.ravel()  # (na*ny*nx,)
+                    xy_flat = xy.reshape(-1, 2)  # (na*ny*nx, 2)
+                    wh_flat = wh.reshape(-1, 2)  # (na*ny*nx, 2)
+                    conf_flat = conf.reshape(-1, conf.shape[-1])  # (na*ny*nx, nc+1)
 
-                # Filter using flat mask
-                xy_filtered = xy_flat[mask_flat]  # (num_filtered, 2)
-                wh_filtered = wh_flat[mask_flat]  # (num_filtered, 2)
-                conf_filtered = conf_flat[mask_flat]  # (num_filtered, nc+1)
+                    # Filter using flat mask
+                    xy_filtered = xy_flat[mask_flat]  # (num_filtered, 2)
+                    wh_filtered = wh_flat[mask_flat]  # (num_filtered, 2)
+                    conf_filtered = conf_flat[mask_flat]  # (num_filtered, nc+1)
+                    
+                    
+                    
 
                 # Filter grid and anchor_grid accordingly (flatten them too)
                 grid_flat = self.grid[i].reshape(-1, 2)  # (na*ny*nx, 2)

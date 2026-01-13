@@ -157,13 +157,21 @@ class YOLOv5:
             boxes = boxes[mask]
             scores = scores[mask]
             classes = classes[mask]
-        else:
+        elif len(prediction) == 3:
             # Sort prediction by size descending (largest first, corresponding to smallest stride)
             prediction = sorted(prediction, key=lambda p: p.shape[2] * p.shape[3], reverse=True)
             # Multiple outputs: process each layer
             outputs = []
             for i, pred in enumerate(prediction):
                 y = pred[0]  # (na, ny, nx, no)
+                
+                if len(prediction[0].shape) == 4:
+                    _, ny, nx = y.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+                    y = y.reshape(self.na, -1, ny, nx)
+                    y = np.transpose(y, (0, 2, 3, 1))
+                    y = np.ascontiguousarray(y)
+
+                
                 na, ny, nx, no = y.shape
 
                 # self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)

@@ -7,9 +7,9 @@ from time import time
 from models import YOLOv5_new as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
-weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms
-weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms
-# weights = '/home/faith/yolov5/exp4/weights/full_best.onnx' # 10.78ms
+weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms
+weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+# weights = '/home/faith/yolov5/exp4/weights/full_best.onnx' # 10.78ms   raspberry 3b: 123.60 ms
 # weights = '/home/faith/yolov5/exp3/weights/best.onnx'
 source = "/home/faith/fux.png"
 source = '/home/faith/yolov5/data/images/zidane.jpg'

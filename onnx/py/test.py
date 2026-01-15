@@ -43,6 +43,8 @@ for resized_image, original_image, status in dataset:
     inference_time = end - start
     print(f"Inference Time: {inference_time * 1000:.2f} ms")
 
+
+    start = time()
     # Scale bounding boxes to original image size
     boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
 
@@ -63,7 +65,7 @@ for resized_image, original_image, status in dataset:
     #         break
 
     print(status)
-
+    print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
     if dataset.type == "image":
         save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
         print(save_path)

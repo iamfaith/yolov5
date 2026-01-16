@@ -19,6 +19,7 @@ weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  raspberry 3b: 10
 source = "/home/faith/fux.png"
 source = '/home/faith/yolov5/data/images/zidane.jpg'
 source = '/home/faith/yolov5/data/images/bus.jpg'
+# source = '/home/faith/yolov5/exp4/PR_curve.png'
 project = "test"
 conf_thres = 0.15
 iou_thres = 0.45
@@ -28,7 +29,7 @@ save_dir = increment_path(Path(project))
 save_dir.mkdir(parents=True, exist_ok=True)
 
 
-model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0])
+model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0], verbose=True)
 model.warmup()
 img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
 print(img_size)
@@ -37,26 +38,31 @@ dataset = LoadMedia(source, img_size=img_size)
 
 
 for resized_image, original_image, status in dataset:
+    image = resized_image.transpose(2, 0, 1)  # Convert from HWC -> CHW
+    image = image[::-1]  # Convert BGR to RGB
+    image = np.ascontiguousarray(image)
+   
     start = time()
     # Model Inference
-    boxes, scores, class_ids = model(resized_image)
+    boxes, scores, class_ids = model(image)
     end = time()
     inference_time = end - start
-    print(f"Inference Time: {inference_time * 1000:.2f} ms")
+    # print(f"Total Time: {inference_time * 1000:.2f} ms")
 
 
     start = time()
-    # Scale bounding boxes to original image size
-    boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
+    if len(boxes) > 0:
+        # Scale bounding boxes to original image size
+        boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
 
-    # Draw bunding boxes
-    for box, score, class_id in zip(boxes, scores, class_ids):
-        draw_detections(original_image, box, score, model.names[int(class_id)], colors(int(class_id)))
+        # Draw bunding boxes
+        for box, score, class_id in zip(boxes, scores, class_ids):
+            draw_detections(original_image, box, score, model.names[int(class_id)], colors(int(class_id)))
 
-    # Print results
-    for c in np.unique(class_ids):
-        n = (class_ids == c).sum()  # detections per class
-        status += f"{n} {model.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+        # Print results
+        for c in np.unique(class_ids):
+            n = (class_ids == c).sum()  # detections per class
+            status += f"{n} {model.names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
     
     # if view_img:
@@ -66,7 +72,7 @@ for resized_image, original_image, status in dataset:
     #         break
 
     print(status)
-    print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
+    # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
     if dataset.type == "image":
         save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
         print(save_path)

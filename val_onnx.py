@@ -27,6 +27,8 @@ from pathlib import Path
 import numpy as np
 import torch
 from tqdm import tqdm
+from onnx_inference import YOLOv5
+
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -41,8 +43,8 @@ from utils.general import (LOGGER, check_dataset, check_img_size, check_requirem
                            coco80_to_coco91_class, colorstr, increment_path, non_max_suppression, print_args,
                            scale_coords, xywh2xyxy, xyxy2xywh)
 from utils.metrics import ConfusionMatrix, ap_per_class, box_iou
-from utils.plots import output_to_target, plot_images, plot_val_study
-from utils.torch_utils import select_device, smart_inference_mode, time_sync
+# from utils.plots import output_to_target, plot_images, plot_val_study
+from utils.torch_utils import time_sync
 
 
 def save_one_txt(predn, save_conf, shape, file):
@@ -93,7 +95,6 @@ def process_batch(detections, labels, iouv):
     return torch.tensor(correct, dtype=torch.bool, device=iouv.device)
 
 
-@smart_inference_mode()
 def run(
         data,
         weights=None,  # model.pt path(s)
@@ -136,14 +137,16 @@ def run(
         save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
-        from models import YOLOv5_new as YOLOv5
+        
         max_det = 1000
         model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0])
         # Load model
         # model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
         stride  = model.stride
-        imgsz = check_img_size(imgsz, s=stride[-1])  # check image size
-        half = model.fp16  # FP16 supported on limited backends with CUDA
+        if isinstance(stride, list):
+            stride = stride[-1]
+        imgsz = check_img_size(imgsz, s=stride)  # check image size
+        # half = model.fp16  # FP16 supported on limited backends with CUDA
         # if engine:
         #     batch_size = model.batch_size
         # else:
@@ -162,11 +165,11 @@ def run(
     nc = 1 if single_cls else int(data['nc'])  # number of classes
     iouv = torch.linspace(0.5, 0.95, 10, device=device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
-
+    pt = False
     # Dataloader
     if not training:
-        if pt and not single_cls:  # check --weights are trained on --data
-            ncm = model.model.nc
+        # if not single_cls:  # check --weights are trained on --data
+            # ncm = model.model.nc
             # assert ncm == nc, f'{weights} ({ncm} classes) trained on different --data than what you passed ({nc} ' \
             #                   f'classes). Pass correct combination of --weights and --data that are trained together.'
         model.warmup(imgsz=(imgsz, imgsz, 3))  # warmup
@@ -196,10 +199,10 @@ def run(
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
         callbacks.run('on_val_batch_start')
         t1 = time_sync()
-        if cuda:
-            im = im.to(device, non_blocking=True)
-            targets = targets.to(device)
-        im = im.half() if half else im.float()  # uint8 to fp16/32
+        # if cuda:
+        #     im = im.to(device, non_blocking=True)
+        #     targets = targets.to(device)
+        # im = im.half() if half else im.float()  # uint8 to fp16/32
         im /= 255  # 0 - 255 to 0.0 - 1.0
         nb, _, height, width = im.shape  # batch size, channels, height, width
         t2 = time_sync()
@@ -259,9 +262,9 @@ def run(
             callbacks.run('on_val_image_end', pred, predn, path, names, im[si])
 
         # Plot images
-        if plots and batch_i < 3:
-            plot_images(im, targets, paths, save_dir / f'val_batch{batch_i}_labels.jpg', names)  # labels
-            plot_images(im, output_to_target(out), paths, save_dir / f'val_batch{batch_i}_pred.jpg', names)  # pred
+        # if plots and batch_i < 3:
+        #     plot_images(im, targets, paths, save_dir / f'val_batch{batch_i}_labels.jpg', names)  # labels
+        #     plot_images(im, output_to_target(out), paths, save_dir / f'val_batch{batch_i}_pred.jpg', names)  # pred
 
         callbacks.run('on_val_batch_end')
 
@@ -355,6 +358,11 @@ def parse_opt():
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+    
+    
+    defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/exp4/weights/best.onnx"], "device": "cpu", "conf_thres": 0.15, "iou_thres": 0.45} 
+    parser.set_defaults(**defaults)
+    
     opt = parser.parse_args()
     opt.data = check_yaml(opt.data)  # check YAML
     opt.save_json |= opt.data.endswith('coco.yaml')
@@ -392,7 +400,7 @@ def main(opt):
                     y.append(r + t)  # results and times
                 np.savetxt(f, y, fmt='%10.4g')  # save
             os.system('zip -r study.zip study_*.txt')
-            plot_val_study(x=x)  # plot
+            # plot_val_study(x=x)  # plot
 
 
 if __name__ == "__main__":

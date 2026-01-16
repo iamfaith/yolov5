@@ -9,18 +9,18 @@ import cv2
 import onnxruntime
 import numpy as np
 from typing import Tuple, List
-
+from time import time
 
 class YOLOv5:
 
-    def warmup(self, imgsz=(640, 640, 3)):
+    def warmup(self, imgsz=(3, 640, 640)):
         # Warmup model by running inference once
         im = np.zeros(imgsz)  # input
         for _ in range(1):  #
             self(im)  # warmup
     
     
-    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn', class_id = None) -> None:
+    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn', class_id = None, verbose=False) -> None:
         """YOLOv5 class initialization
 
         Args:
@@ -35,6 +35,7 @@ class YOLOv5:
         self.max_det = max_det
         self.nms_mode = nms_mode
         self.class_id = class_id
+        self.verbose = verbose
 
         # YOLOv5 default anchors and strides
         
@@ -61,11 +62,19 @@ class YOLOv5:
         Returns:
             Tuple: boxes, confidence scores, class indexes
         """
-        if not isinstance(image, np.ndarray) or len(image.shape) != 3:
-            raise ValueError("Input image must be a numpy array with 3 dimensions (H, W, C).")
+        # if not isinstance(image, np.ndarray) or len(image.shape) != 3:
+        #     raise ValueError("Input image must be a numpy array with 3 dimensions (H, W, C).")
 
+        if self.verbose:
+            start = time()
         outputs = self.inference(image)
+        if self.verbose:
+            print(f"inference Time: {(time() - start) * 1000:.2f} ms")
+        if self.verbose:
+            start = time()
         predictions = self.postprocess(outputs)
+        if self.verbose:
+            print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
         return predictions
 
     def inference(self, image: np.ndarray) -> List[np.ndarray]:
@@ -132,9 +141,7 @@ class YOLOv5:
         Returns:
             np.ndarray: HWC -> CHW, BGR to RGB, Normalize and Add batch dimension.
         """
-        image = image.transpose(2, 0, 1)  # Convert from HWC -> CHW
-        image = image[::-1]  # Convert BGR to RGB
-        image = np.ascontiguousarray(image)
+
         image = image.astype(np.float32) / 255.0  # Normalize the input
         image_tensor = image[np.newaxis, ...]  # Add batch dimension
 
@@ -226,7 +233,8 @@ class YOLOv5:
 
             # single batch
             if not outputs:
-                outputs = np.empty((0, no))
+                # outputs = np.empty((0, no))
+                return [], [], []
             else:
                 outputs = np.concatenate(outputs, axis=0)
 

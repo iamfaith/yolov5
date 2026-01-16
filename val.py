@@ -185,7 +185,7 @@ def run(
     names = dict(enumerate(model.names if hasattr(model, 'names') else model.module.names))
     class_map = coco80_to_coco91_class() if is_coco else list(range(1000))
     s = ('%20s' + '%11s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
-    dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
     callbacks.run('on_val_start')
@@ -215,8 +215,10 @@ def run(
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
         out = non_max_suppression(out, conf_thres, iou_thres, labels=lb, multi_label=True, agnostic=single_cls)
-        dt[2] += time_sync() - t3
+        end_nms = time_sync()
+        dt[2] += end_nms - t3
 
+        dt[3] += end_nms - t2
         # Metrics
         for si, pred in enumerate(out):
             labels = targets[targets[:, 0] == si, 1:]
@@ -285,7 +287,7 @@ def run(
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
     if not training:
         shape = (batch_size, 3, imgsz, imgsz)
-        LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {shape}' % t)
+        LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms Total per image at shape {shape}' % t)
 
     # Plots
     if plots:
@@ -389,7 +391,7 @@ def main(opt):
                     y.append(r + t)  # results and times
                 np.savetxt(f, y, fmt='%10.4g')  # save
             os.system('zip -r study.zip study_*.txt')
-            plot_val_study(x=x)  # plot
+            # plot_val_study(x=x)  # plot
 
 
 if __name__ == "__main__":

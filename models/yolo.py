@@ -54,8 +54,16 @@ class Detect(nn.Module):
 
     def forward(self, x):
         z = []  # inference output
+        onnx_z = []
+        print('Strides:', self.stride.tolist())
+
         for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv
+            if self.export:
+                y = x[i].sigmoid()
+                onnx_z.append(y) 
+                continue
+            
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -64,6 +72,8 @@ class Detect(nn.Module):
                     self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
 
                 y = x[i].sigmoid()
+                # old
+                # onnx_z.append(y) 
                 if self.inplace:
                     y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]) * self.stride[i]  # xy
                     y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
@@ -73,6 +83,9 @@ class Detect(nn.Module):
                     wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
                     y = torch.cat((xy, wh, conf), 4)
                 z.append(y.view(bs, -1, self.no))
+
+        if self.export:
+            return tuple(onnx_z)
 
         return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
 

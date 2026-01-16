@@ -1,37 +1,50 @@
-import os
 import cv2
-import logging
-import argparse
 import numpy as np
 from pathlib import Path
 
 from typing import List, Tuple
-
-from models import YOLOv5
+from time import time
+from models import YOLOv5_new as YOLOv5
+# from models import YOLOv5_new_backup as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
-weights = "/home/faith/yolov5/runs/train/exp3/weights/best.onnx"
-source = "/home/faith/yolov5/data/images/zidane.jpg"
-source = '/home/faith/fux.png'
+weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms
+weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+# weights = '/home/faith/yolov5/exp4/weights/transpose_best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+# weights = '/home/faith/yolov5/exp4/weights/full_best.onnx' # 10.78ms   raspberry 3b: 123.60 ms
+# weights = '/home/faith/yolov5/exp3/weights/best.onnx'
+# weights = '/home/faith/yolov5/yolov5s_relu.onnx' # rknn
+# weights = '/home/faith/yolov5/yolov5s.onnx' # rknn
+# weights = '/home/faith/yolov5/yolov5n.onnx' # rknn
+source = "/home/faith/fux.png"
+source = '/home/faith/yolov5/data/images/zidane.jpg'
+source = '/home/faith/yolov5/data/images/bus.jpg'
 project = "test"
 conf_thres = 0.15
-iou_thres = 0.5
+iou_thres = 0.45
 max_det = 1000
 img_size = [640, 640]
 save_dir = increment_path(Path(project))
 save_dir.mkdir(parents=True, exist_ok=True)
 
 
-model = YOLOv5(weights, conf_thres, iou_thres, max_det)
-img_size = check_img_size(img_size, s=model.stride)
+model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0])
+img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
+print(img_size)
 dataset = LoadMedia(source, img_size=img_size)
 
 
 
 for resized_image, original_image, status in dataset:
+    start = time()
     # Model Inference
     boxes, scores, class_ids = model(resized_image)
+    end = time()
+    inference_time = end - start
+    print(f"Inference Time: {inference_time * 1000:.2f} ms")
 
+
+    start = time()
     # Scale bounding boxes to original image size
     boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
 
@@ -52,7 +65,7 @@ for resized_image, original_image, status in dataset:
     #         break
 
     print(status)
-
+    print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
     if dataset.type == "image":
         save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
         print(save_path)

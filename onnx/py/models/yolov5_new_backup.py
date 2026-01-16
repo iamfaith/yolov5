@@ -12,7 +12,7 @@ from typing import Tuple, List
 
 
 class YOLOv5:
-    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn') -> None:
+    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn', class_id = None) -> None:
         """YOLOv5 class initialization
 
         Args:
@@ -26,6 +26,7 @@ class YOLOv5:
         self.iou_threshold = iou_thres
         self.max_det = max_det
         self.nms_mode = nms_mode
+        self.class_id = class_id
 
         # YOLOv5 default anchors and strides
         
@@ -35,9 +36,9 @@ class YOLOv5:
             np.array([[30., 61.], [62., 45.], [59., 119.]], dtype=np.float32),
             np.array([[116., 90.], [156., 198.], [373., 326.]], dtype=np.float32)
         ]
-        self.na = 3 #self.anchors[0].shape[0]
-        self.grid = [None] * self.na
-        self.anchor_grid = [None] * self.na
+        
+        self.grid = []
+        self.anchor_grid = []
         
 
         # Initialize model
@@ -87,6 +88,10 @@ class YOLOv5:
             self.output_names = [x.name for x in self.session.get_outputs()]
             self.input_names = [x.name for x in self.session.get_inputs()]
 
+            # Set na based on number of outputs
+            self.na = len(self.output_names)
+            
+            
             # Get model metadata
             metadata = self.session.get_modelmeta().custom_metadata_map
             if len(self.output_names) == 1:
@@ -95,6 +100,14 @@ class YOLOv5:
                 self.stride = [8, 16, 32]
                 # 归一化 anchors
                 self.anchors = [a / s for a, s in zip(self.anchors, self.stride)]
+                
+                # Build grids based on output shapes
+                for i, output in enumerate(self.session.get_outputs()):
+                    shape = output.shape  # e.g., (1, 3, ny, nx, no)
+                    ny, nx = shape[2], shape[3]
+                    grid, anchor_grid = self._make_grid(nx, ny, i)
+                    self.grid.append(grid)
+                    self.anchor_grid.append(anchor_grid)
             
             self.names = eval(metadata.get("names", "{}"))  # Default to empty dict
             self.nc = len(self.names)
@@ -131,80 +144,126 @@ class YOLOv5:
         if len(prediction) == 1:
             # Single output: assume concatenated (1, 25200, 85)
             outputs = np.squeeze(prediction[0])
-        else:
+            
+            # Extract boxes, scores, and classes
+            boxes = outputs[:, :4]  # xywh
+            scores = outputs[:, 4]  # confidence scores
+            classes = outputs[:, 5:]  # class probabilities
+
+            boxes = self.xywh2xyxy(boxes)
+
+            # Apply confidence threshold
+            mask = scores > self.conf_threshold
+            boxes = boxes[mask]
+            scores = scores[mask]
+            classes = classes[mask]
+        elif len(prediction) == 3:
             # Sort prediction by size descending (largest first, corresponding to smallest stride)
             prediction = sorted(prediction, key=lambda p: p.shape[2] * p.shape[3], reverse=True)
             # Multiple outputs: process each layer
             outputs = []
             for i, pred in enumerate(prediction):
                 y = pred[0]  # (na, ny, nx, no)
-                na, ny, nx, no = y.shape
-
-
-                # Make grid
-                # xv, yv = np.meshgrid(np.arange(nx), np.arange(ny))
-                # grid = np.stack((xv, yv), 2).astype(np.float32) - 0.5  # (ny, nx, 2)
-                # grid = np.expand_dims(grid, 0)  # (1, ny, nx, 2)
-
-                # Anchor grid
-                # anchors = np.array(self.anchors[i]).reshape(na, 2)  # (na, 2)
-                # anchor_grid = np.zeros((na, ny, nx, 2))  # (na, ny, nx, 2)
-                # for a in range(na):
-                    # anchor_grid[a, :, :, :] = anchors[a] * self.stride[i]
-
-                self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
-
-                # Split y into xy, wh, conf
-                xy = y[..., :2]
-                wh = y[..., 2:4]
-                conf = y[..., 4:]
-
-                # Compute coordinates
-                xy = (xy * 2 + self.grid[i]) * self.stride[i]
-                wh = (wh * 2) ** 2 * self.anchor_grid[i]
-
-
-                # multiply batch size
-                # conf = conf[None, ...]
-
-                # single batch
-                xy = np.squeeze(xy, axis=0)
-                wh = np.squeeze(wh, axis=0)
-                # Concatenate back
-                y_processed = np.concatenate((xy, wh, conf), axis=-1)
                 
-                # multiply batch size                
-                # bs = 1
-                # y_processed = y_processed.reshape(bs, -1, no)
+                if len(prediction[0].shape) == 4:
 
-                # single batch  
+                    _, ny, nx = y.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+                    y = y.reshape(self.na, -1, ny, nx)
+                    _, no, _, _ = y.shape
+                    
+                    scores = y[:, 4, ...] # confidence scores
+                    mask = scores > self.conf_threshold
+                    if not mask.any():
+                        continue
+
+                    # 原始做法，tranpose再过滤，现在改为直接过滤
+                    # y = np.transpose(y, (0, 2, 3, 1))
+                    # y = np.ascontiguousarray(y)
+                    
+                    mask_flat = mask.ravel() 
+                    # 24, 6 可能变成两维
+                    y = np.transpose(y, (0, 2, 3, 1))[mask]
+
+                    y = np.ascontiguousarray(y)
+                    xy_filtered = y[..., :2]
+                    wh_filtered = y[..., 2:4]
+                    conf_filtered = y[..., 4:]
+                    
+                elif len(prediction[0].shape) == 5: # with transpose
+                    na, ny, nx, no = y.shape
+
+                    # self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+
+                    # Split y into xy, wh, conf
+                    xy = y[..., :2]
+                    wh = y[..., 2:4]
+                    conf = y[..., 4:]
+
+                    # Apply confidence threshold mask
+                    scores = conf[..., 0]  # confidence scores
+                    mask = scores > self.conf_threshold
+                    if not mask.any():
+                        continue
+
+
+                    # Flatten mask and arrays for filtering
+                    mask_flat = mask.ravel()  # (na*ny*nx,)
+                    xy_flat = xy.reshape(-1, 2)  # (na*ny*nx, 2)
+                    wh_flat = wh.reshape(-1, 2)  # (na*ny*nx, 2)
+                    conf_flat = conf.reshape(-1, conf.shape[-1])  # (na*ny*nx, nc+1)
+
+                    # Filter using flat mask
+                    xy_filtered = xy_flat[mask_flat]  # (num_filtered, 2)
+                    wh_filtered = wh_flat[mask_flat]  # (num_filtered, 2)
+                    conf_filtered = conf_flat[mask_flat]  # (num_filtered, nc+1)
+                    
+                    
+                    
+
+                # Filter grid and anchor_grid accordingly (flatten them too)
+                grid_flat = self.grid[i].reshape(-1, 2)  # (na*ny*nx, 2)
+                anchor_grid_flat = self.anchor_grid[i].reshape(-1, 2)  # (na*ny*nx, 2)
+                grid_filtered = grid_flat[mask_flat]  # (num_filtered, 2)
+                anchor_grid_filtered = anchor_grid_flat[mask_flat]  # (num_filtered, 2)
+     
+                # Compute coordinates
+                xy_filtered = (xy_filtered * 2 + grid_filtered) * self.stride[i]
+                wh_filtered = (wh_filtered * 2) ** 2 * anchor_grid_filtered
+
+                # Concatenate back
+                y_processed = np.concatenate((xy_filtered, wh_filtered, conf_filtered), axis=-1)
                 y_processed = y_processed.reshape(-1, no)
+                
 
                 outputs.append(y_processed)
 
             # single batch
-            outputs = np.concatenate(outputs, axis=0)
+            if not outputs:
+                outputs = np.empty((0, no))
+            else:
+                outputs = np.concatenate(outputs, axis=0)
 
-            # multiply batch size
-            # Concatenate all layers
-            # outputs = np.concatenate(outputs, axis=1)
-            # outputs = np.squeeze(outputs[0])
+            # Extract boxes, scores, and classes
+            boxes = outputs[:, :4]  # xywh
+            scores = outputs[:, 4]  # confidence scores
+            classes = outputs[:, 5:]  # class probabilities
+            boxes = self.xywh2xyxy(boxes)
 
-        # Extract boxes, scores, and classes
-        boxes = outputs[:, :4]  # xywh
-        scores = outputs[:, 4]  # confidence scores
-        classes = outputs[:, 5:]  # class probabilities
-
-        boxes = self.xywh2xyxy(boxes)
-
-        # Apply confidence threshold
-        mask = scores > self.conf_threshold
-        boxes = boxes[mask]
-        scores = scores[mask]
-        classes = classes[mask]
 
         # Get class with highest probability for each detection
         class_ids = np.argmax(classes, axis=1)[:self.max_det]
+
+        # Filter by specific class_id if provided
+        if self.class_id is not None:
+            if isinstance(self.class_id, list):
+                mask = np.isin(class_ids, self.class_id)  # 支持多个类别
+            else:
+                mask = class_ids == self.class_id  # 单个类别
+            boxes = boxes[mask]
+            scores = scores[mask]
+            classes = classes[mask]
+            class_ids = class_ids[mask]
+
 
         # Apply NMS
         if self.nms_mode == "torchvision":

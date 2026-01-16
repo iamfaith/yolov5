@@ -40,16 +40,18 @@ import cv2
 #         print(f"检测到类别 {cls_id}, 置信度 {conf:.2f}, 坐标: {x:.0f},{y:.0f},{w:.0f},{h:.0f}")
 
 
-
-# model = YOLO("yolo26n.pt")
-model = YOLO("yolo26s.pt")
+# Speed: 2.9ms preprocess, 59.2ms inference, 0.8ms postprocess per image at shape (1, 3, 640, 480)
+model = YOLO("yolo26n.pt")
+ 
+# Speed: 3.9ms preprocess, 100.4ms inference, 0.7ms postprocess per image at shape (1, 3, 640, 480)
+# model = YOLO("yolo26s.pt") 
 
 # model.export(format="onnx", opset=17, dynamic=False)
 
 # results = model.train(data="coco8.yaml", epochs=100, imgsz=640)
 
 start = time()
-results = model("/home/faith/yolov5/data/images/bus.jpg")
+results = model("/home/faith/yolov5/data/images/bus.jpg", device="cpu")
 end = time()
 print(f"Inference time: {end - start} seconds")
 # print(results)

@@ -12,6 +12,9 @@ python export.py --weights ./yolov5n.pt --img 640 --batch 1 --include onnx
 
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights /home/faith/yolov5/exp4/weights/best.pt  --img 640 --batch 1 --include onnx
 
+val------------
+
+/home/faith/miniconda3/envs/torch_cuda_11.3/bin/python val.py --task study --data /home/faith/yolov5/data/coco_person.yaml --iou 0.45 --weights /home/faith/yolov5/yolov5n6-6.2.pt
 
 
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python export.py --weights yolov5n6-6.2.pt --img 384 768 --batch 1 --include onnx  --simplify

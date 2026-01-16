@@ -29,6 +29,7 @@ save_dir.mkdir(parents=True, exist_ok=True)
 
 
 model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0])
+model.warmup()
 img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
 print(img_size)
 dataset = LoadMedia(source, img_size=img_size)

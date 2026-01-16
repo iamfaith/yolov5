@@ -12,6 +12,14 @@ from typing import Tuple, List
 
 
 class YOLOv5:
+
+    def warmup(self, imgsz=(640, 640, 3)):
+        # Warmup model by running inference once
+        im = np.zeros(imgsz)  # input
+        for _ in range(1):  #
+            self(im)  # warmup
+    
+    
     def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn', class_id = None) -> None:
         """YOLOv5 class initialization
 

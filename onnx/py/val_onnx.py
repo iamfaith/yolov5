@@ -130,31 +130,34 @@ def run(
         half &= device.type != 'cpu'  # half precision only supported on CUDA
         model.half() if half else model.float()
     else:  # called directly
-        device = select_device(device, batch_size=batch_size)
+        # device = select_device(device, batch_size=batch_size)
 
         # Directories
         save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
+        from models import YOLOv5_new as YOLOv5
+        max_det = 1000
+        model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0])
         # Load model
-        model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
-        stride, pt, jit, engine = model.stride, model.pt, model.jit, model.engine
-        imgsz = check_img_size(imgsz, s=stride)  # check image size
+        # model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
+        stride  = model.stride
+        imgsz = check_img_size(imgsz, s=stride[-1])  # check image size
         half = model.fp16  # FP16 supported on limited backends with CUDA
-        if engine:
-            batch_size = model.batch_size
-        else:
-            device = model.device
-            if not (pt or jit):
-                batch_size = 1  # export.py models default to batch-size 1
-                LOGGER.info(f'Forcing --batch-size 1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models')
+        # if engine:
+        #     batch_size = model.batch_size
+        # else:
+        #     device = model.device
+        #     if not (pt or jit):
+        #         batch_size = 1  # export.py models default to batch-size 1
+        #         LOGGER.info(f'Forcing --batch-size 1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models')
 
         # Data
         data = check_dataset(data)  # check
 
     # Configure
-    model.eval()
-    cuda = device.type != 'cpu'
+    # model.eval()
+    # cuda = device.type != 'cpu'
     is_coco = isinstance(data.get('val'), str) and data['val'].endswith(f'coco{os.sep}val2017.txt')  # COCO dataset
     nc = 1 if single_cls else int(data['nc'])  # number of classes
     iouv = torch.linspace(0.5, 0.95, 10, device=device)  # iou vector for mAP@0.5:0.95
@@ -166,7 +169,7 @@ def run(
             ncm = model.model.nc
             # assert ncm == nc, f'{weights} ({ncm} classes) trained on different --data than what you passed ({nc} ' \
             #                   f'classes). Pass correct combination of --weights and --data that are trained together.'
-        model.warmup(imgsz=(1 if pt else batch_size, 3, imgsz, imgsz))  # warmup
+        model.warmup(imgsz=(imgsz, imgsz, 3))  # warmup
         pad = 0.0 if task in ('speed', 'benchmark') else 0.5
         rect = False if task == 'benchmark' else pt  # square inference for benchmarks
         task = task if task in ('train', 'val', 'test') else 'val'  # path to train/val/test images

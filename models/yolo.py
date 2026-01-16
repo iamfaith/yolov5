@@ -55,7 +55,7 @@ class Detect(nn.Module):
     def forward(self, x):
         z = []  # inference output
         onnx_z = []
-        print('Strides:', self.stride.tolist())
+        # print('Strides:', self.stride.tolist())
 
         for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv

@@ -10,11 +10,12 @@ from typing import List, Tuple
 from models import YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
-weights = "/home/faith/yolov5/yolov5n6-6.2.onnx"
-source = "/home/faith/fux.png"
+weights = "/home/faith/yolov5/runs/train/exp3/weights/best.onnx"
+source = "/home/faith/yolov5/data/images/zidane.jpg"
+source = '/home/faith/fux.png'
 project = "test"
-conf_thres = 0.25
-iou_thres = 0.45
+conf_thres = 0.15
+iou_thres = 0.5
 max_det = 1000
 img_size = [640, 640]
 save_dir = increment_path(Path(project))

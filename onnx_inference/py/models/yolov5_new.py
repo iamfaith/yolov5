@@ -16,6 +16,7 @@ class YOLOv5:
     def warmup(self, imgsz=(3, 640, 640)):
         # Warmup model by running inference once
         im = np.zeros(imgsz)  # input
+        im = im.astype(np.float32) / 255.0  # Normalize the input
         for _ in range(1):  #
             self(im)  # warmup
     
@@ -65,16 +66,29 @@ class YOLOv5:
         # if not isinstance(image, np.ndarray) or len(image.shape) != 3:
         #     raise ValueError("Input image must be a numpy array with 3 dimensions (H, W, C).")
 
-        if self.verbose:
-            start = time()
-        outputs = self.inference(image)
-        if self.verbose:
-            print(f"inference Time: {(time() - start) * 1000:.2f} ms")
-        if self.verbose:
-            start = time()
-        predictions = self.postprocess(outputs)
-        if self.verbose:
-            print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
+
+        # if self.verbose:
+            # start = time()
+            # if self.verbose:
+        #     print(f"inference Time: {(time() - start) * 1000:.2f} ms")
+        # if self.verbose:
+        #     start = time()
+                # if self.verbose:
+            # print(f"total Time: {(time() - start) * 1000:.2f} ms")
+        
+        if image.shape[0] > 1 and len(image.shape) == 4:
+            predictions = []
+            for i in range(image.shape[0]): 
+                im = self.preprocess(image[i])
+                outputs = self.inference(im)
+        
+                boxes, scores, class_ids = self.postprocess(outputs)
+                predictions.append((boxes, scores, class_ids))
+        else:
+            input_tensor = self.preprocess(image)
+            outputs = self.inference(input_tensor)
+            predictions = self.postprocess(outputs)
+
         return predictions
 
     def inference(self, image: np.ndarray) -> List[np.ndarray]:
@@ -86,8 +100,7 @@ class YOLOv5:
         Returns:
             List[np.ndarray]: Model outputs.
         """
-        input_tensor = self.preprocess(image)
-        outputs = self.session.run(self.output_names, {self.input_names[0]: input_tensor})
+        outputs = self.session.run(self.output_names, {self.input_names[0]: image})
         return outputs
 
     def _initialize_model(self, model_path: str) -> None:
@@ -142,10 +155,14 @@ class YOLOv5:
             np.ndarray: HWC -> CHW, BGR to RGB, Normalize and Add batch dimension.
         """
 
-        image = image.astype(np.float32) / 255.0  # Normalize the input
-        image_tensor = image[np.newaxis, ...]  # Add batch dimension
+        # image = image.astype(np.float32) / 255.0  # Normalize the input
 
-        return image_tensor
+        
+
+        if len(image.shape) == 3:
+            image = image[np.newaxis, ...]  # Add batch dimension
+
+        return image
 
     def postprocess(self, prediction: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Post processing

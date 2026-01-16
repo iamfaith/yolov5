@@ -115,7 +115,7 @@ def run(
         project=ROOT / 'runs/val',  # save to project/name
         name='exp',  # save to project/name
         exist_ok=False,  # existing project/name ok, do not increment
-        half=True,  # use FP16 half-precision inference
+        half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         model=None,
         dataloader=None,
@@ -172,7 +172,7 @@ def run(
             # ncm = model.model.nc
             # assert ncm == nc, f'{weights} ({ncm} classes) trained on different --data than what you passed ({nc} ' \
             #                   f'classes). Pass correct combination of --weights and --data that are trained together.'
-        model.warmup(imgsz=(imgsz, imgsz, 3))  # warmup
+        model.warmup(imgsz=(3, imgsz, imgsz))  # warmup
         pad = 0.0 if task in ('speed', 'benchmark') else 0.5
         rect = False if task == 'benchmark' else pt  # square inference for benchmarks
         task = task if task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
@@ -203,28 +203,35 @@ def run(
         #     im = im.to(device, non_blocking=True)
         #     targets = targets.to(device)
         # im = im.half() if half else im.float()  # uint8 to fp16/32
+        im = im.float()
         im /= 255  # 0 - 255 to 0.0 - 1.0
         nb, _, height, width = im.shape  # batch size, channels, height, width
         t2 = time_sync()
         dt[0] += t2 - t1
 
         # Inference
-        out, train_out = model(im) if training else model(im, augment=augment, val=True)  # inference, loss outputs
+        #  im = im.permute(0, 2, 3, 1).cpu().numpy()  # torch BCHW to numpy BHWC shape(1,320,192,3)
+        # out, train_out = model(im) if training else model(im, augment=augment, val=True)  # 
+
+        im = im.cpu().numpy()  # torch to numpy
+        out = model(im) #boxes, scores, class_ids 
+        # inference, loss outputs
         dt[1] += time_sync() - t2
 
         # Loss
-        if compute_loss:
-            loss += compute_loss([x.float() for x in train_out], targets)[1]  # box, obj, cls
+        # if compute_loss:
+            # loss += compute_loss([x.float() for x in train_out], targets)[1]  # box, obj, cls
 
         # NMS
         targets[:, 2:] *= torch.tensor((width, height, width, height), device=device)  # to pixels
-        lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
+        # lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
         t3 = time_sync()
-        out = non_max_suppression(out, conf_thres, iou_thres, labels=lb, multi_label=True, agnostic=single_cls)
+        # out = non_max_suppression(out, conf_thres, iou_thres, labels=lb, multi_label=True, agnostic=single_cls)
         dt[2] += time_sync() - t3
 
         # Metrics
         for si, pred in enumerate(out):
+            boxes, scores, class_ids = pred
             labels = targets[targets[:, 0] == si, 1:]
             nl, npr = labels.shape[0], pred.shape[0]  # number of labels, predictions
             path, shape = Path(paths[si]), shapes[si][0]

@@ -354,6 +354,11 @@ def parse_opt():
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+    
+    defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/yolov5n6-6.2.pt"], "device": "0", "conf_thres": 0.25, "iou_thres": 0.45, "single_cls": True, "batch_size": 32} 
+    # defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/exp4/weights/best.pt"], "device": "0", "conf_thres": 0.15, "iou_thres": 0.45, "single_cls": True, "batch_size": 64} 
+    parser.set_defaults(**defaults)
+    
     opt = parser.parse_args()
     opt.data = check_yaml(opt.data)  # check YAML
     opt.save_json |= opt.data.endswith('coco.yaml')

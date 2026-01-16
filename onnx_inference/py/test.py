@@ -8,10 +8,19 @@ from models import YOLOv5_new as YOLOv5
 # from models import YOLOv5_new_backup as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
-weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms
+# Average inference time: 20.29 ms over 2693 images
+# weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms
+
+# Average inference time: 3.34 ms over 2693 images
 weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+
+# Average inference time: 3.50 ms over 2693 images
 # weights = '/home/faith/yolov5/exp4/weights/transpose_best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+
+
+# Average inference time: 3.82 ms over 2693 images
 # weights = '/home/faith/yolov5/exp4/weights/full_best.onnx' # 10.78ms   raspberry 3b: 123.60 ms
+
 # weights = '/home/faith/yolov5/exp3/weights/best.onnx'
 # weights = '/home/faith/yolov5/yolov5s_relu.onnx' # rknn
 # weights = '/home/faith/yolov5/yolov5s.onnx' # rknn
@@ -33,47 +42,70 @@ model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0], verbose=
 model.warmup()
 img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
 print(img_size)
-dataset = LoadMedia(source, img_size=img_size)
 
 
 
-for resized_image, original_image, status in dataset:
-    image = resized_image.transpose(2, 0, 1)  # Convert from HWC -> CHW
-    image = image[::-1]  # Convert BGR to RGB
-    image = np.ascontiguousarray(image)
-   
-    start = time()
-    # Model Inference
-    boxes, scores, class_ids = model(image)
-    end = time()
-    inference_time = end - start
-    # print(f"Total Time: {inference_time * 1000:.2f} ms")
-
-
-    start = time()
-    if len(boxes) > 0:
-        # Scale bounding boxes to original image size
-        boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
-
-        # Draw bunding boxes
-        for box, score, class_id in zip(boxes, scores, class_ids):
-            draw_detections(original_image, box, score, model.names[int(class_id)], colors(int(class_id)))
-
-        # Print results
-        for c in np.unique(class_ids):
-            n = (class_ids == c).sum()  # detections per class
-            status += f"{n} {model.names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
+def inference(source):
+    dataset = LoadMedia(source, img_size=img_size)
+    for resized_image, original_image, status in dataset:
+        image = resized_image.transpose(2, 0, 1)  # Convert from HWC -> CHW
+        image = image[::-1]  # Convert BGR to RGB
+        image = np.ascontiguousarray(image)
+        
+        image = image.astype(np.float32) / 255.0  # Normalize the input
     
-    # if view_img:
-    #     # Display the image with detections
-    #     cv2.imshow('Webcam Inference', original_image)
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
-    #         break
+        start = time()
+        # Model Inference
+        boxes, scores, class_ids = model(image)
+        end = time()
+        inference_time = end - start
+        # print(f"Total Time: {inference_time * 1000:.2f} ms")
 
-    print(status)
-    # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
-    if dataset.type == "image":
-        save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
-        print(save_path)
-        cv2.imwrite(save_path, original_image)
+
+        start = time()
+        if len(boxes) > 0:
+            # Scale bounding boxes to original image size
+            boxes = scale_boxes(resized_image.shape, boxes, original_image.shape).round()
+
+            # Draw bunding boxes
+            for box, score, class_id in zip(boxes, scores, class_ids):
+                draw_detections(original_image, box, score, model.names[int(class_id)], colors(int(class_id)))
+
+            # Print results
+            for c in np.unique(class_ids):
+                n = (class_ids == c).sum()  # detections per class
+                status += f"{n} {model.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+        
+        # if view_img:
+        #     # Display the image with detections
+        #     cv2.imshow('Webcam Inference', original_image)
+        #     if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
+        #         break
+
+        # print(status)
+        # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
+        # if dataset.type == "image":
+        #     save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
+        #     print(save_path)
+        #     cv2.imwrite(save_path, original_image)
+        return inference_time
+
+
+from glob import glob
+
+times = []
+
+for img_path in glob('/home/faith/coco2017labels-person/coco/images/val/*.jpg'):
+    inference_time = inference(img_path)
+    times.append(inference_time)
+    print(f"Processing {img_path} Total Time: {inference_time * 1000:.2f} ms")
+    # break
+
+
+if times:
+    avg_time = np.mean(times)
+    print(f"Average inference time: {avg_time * 1000:.2f} ms over {len(times)} images")
+  
+# inference_time = inference(source)
+# print(f"Total Time: {inference_time * 1000:.2f} ms")

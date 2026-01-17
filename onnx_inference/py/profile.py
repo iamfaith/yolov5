@@ -13,6 +13,7 @@ from aicmder import model_info
 model_path = "/home/faith/yolov5/yolov5n6-6.2-320.onnx"
 model_path = "/home/faith/yolov5/yolov5n6-6.2-640.onnx"
 model_path = '/home/faith/yolov5/exp4/weights/best.onnx'
+model_path = "/home/faith/yolov5/yolov5n6-6.2-192.onnx"
 def infer_shapes(model: onnx.ModelProto) -> onnx.ModelProto:
     try:
         return onnx.shape_inference.infer_shapes(model)

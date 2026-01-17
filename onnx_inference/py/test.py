@@ -11,6 +11,7 @@ from utils.general import check_img_size, scale_boxes, draw_detections, colors, 
 
 img_size = [640, 640]
 img_size = [320, 320]
+img_size = [192, 192]
 #### 640
 # Average inference time: 20.29 ms over 2693 images
 # Total MACs: 2,279,526,400 (2.280 GMAC)
@@ -25,6 +26,13 @@ img_size = [320, 320]
 # Estimated Total FLOPs: 1,157,264,850 (1.157 GFLOPS)
 # raspberry 3b: Average inference time: 227.69 ms over 501 images
 weights = "/home/faith/yolov5/yolov5n6-6.2-320.onnx" 
+
+
+# Average inference time: 3.09 ms over 2693 images
+# Total MACs: 205,157,376 (0.205 GMAC)
+# Estimated Total FLOPs: 416,615,346 (0.417 GFLOPS)
+# raspberry 3b:  Average inference time: 89.98 ms over 501 images
+weights = "/home/faith/yolov5/yolov5n6-6.2-192.onnx" 
 
 # Average inference time: 3.34 ms over 2693 images
 # Total MACs: 79,762,400 (0.080 GMAC)

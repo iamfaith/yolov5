@@ -8,11 +8,29 @@ from models import YOLOv5_new as YOLOv5
 # from models import YOLOv5_new_backup as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
+
+img_size = [640, 640]
+img_size = [320, 320]
+#### 640
 # Average inference time: 20.29 ms over 2693 images
-# weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   raspberry 3b: 802.98 ms
+# Total MACs: 2,279,526,400 (2.280 GMAC)
+# Estimated Total FLOPs: 4,629,059,400 (4.629 GFLOPS)
+# raspberry 3b: 802.98 ms Average inference time: 826.70 ms over 501 images
+# weights = "/home/faith/yolov5/yolov5n6-6.2.onnx" # 32.70ms   
+
+
+
+#### 320 Average inference time: 6.08 ms over 2693 images
+# Total MACs: 569,881,600 (0.570 GMAC)
+# Estimated Total FLOPs: 1,157,264,850 (1.157 GFLOPS)
+# raspberry 3b: Average inference time: 227.69 ms over 501 images
+weights = "/home/faith/yolov5/yolov5n6-6.2-320.onnx" 
 
 # Average inference time: 3.34 ms over 2693 images
-weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
+# Total MACs: 79,762,400 (0.080 GMAC)
+# Estimated Total FLOPs: 163,072,000 (0.163 GFLOPS)
+# raspberry 3b: 109.63 ms Average inference time: 92.85 ms over 501 images
+# weights = '/home/faith/yolov5/exp4/weights/best.onnx' # 7.22ms  
 
 # Average inference time: 3.50 ms over 2693 images
 # weights = '/home/faith/yolov5/exp4/weights/transpose_best.onnx' # 7.22ms  raspberry 3b: 109.63 ms
@@ -33,19 +51,19 @@ project = "test"
 conf_thres = 0.15
 iou_thres = 0.45
 max_det = 1000
-img_size = [640, 640]
+
 save_dir = increment_path(Path(project))
 save_dir.mkdir(parents=True, exist_ok=True)
 
 
 model = YOLOv5(weights, conf_thres, iou_thres, max_det, class_id = [0], verbose=True)
-model.warmup()
+model.warmup(imgsz=(3, img_size[0], img_size[1]))
 img_size = check_img_size(img_size, s=max(model.stride) if isinstance(model.stride, list) else model.stride)  # check img_size
 print(img_size)
 
 
 
-def inference(source):
+def inference(source, write_images=True):
     dataset = LoadMedia(source, img_size=img_size)
     for resized_image, original_image, status in dataset:
         image = resized_image.transpose(2, 0, 1)  # Convert from HWC -> CHW
@@ -85,10 +103,10 @@ def inference(source):
 
         # print(status)
         # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
-        # if dataset.type == "image":
-        #     save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
-        #     print(save_path)
-        #     cv2.imwrite(save_path, original_image)
+        if dataset.type == "image" and write_images:
+            save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")
+            print(save_path)
+            cv2.imwrite(save_path, original_image)
         return inference_time
 
 
@@ -97,7 +115,7 @@ from glob import glob
 times = []
 
 for img_path in glob('/home/faith/coco2017labels-person/coco/images/val/*.jpg'):
-    inference_time = inference(img_path)
+    inference_time = inference(img_path, write_images=False)
     times.append(inference_time)
     print(f"Processing {img_path} Total Time: {inference_time * 1000:.2f} ms")
     # break

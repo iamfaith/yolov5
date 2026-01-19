@@ -10,10 +10,12 @@ from typing import Tuple
 
 from aicmder import model_info
 
-model_path = "/home/faith/yolov5/yolov5n6-6.2-320.onnx"
-model_path = "/home/faith/yolov5/yolov5n6-6.2-640.onnx"
-model_path = '/home/faith/yolov5/exp4/weights/best.onnx'
-model_path = "/home/faith/yolov5/yolov5n6-6.2-192.onnx"
+model_path = "/home/faith/Yolov11-ONNX-Object-Detection/models/yolov11n.onnx"
+# model_path = "/home/faith/ONNX-YOLOv10-Object-Detection/models/yolov10n.onnx"
+# model_path = "/home/faith/yolov5/yolov5n6-6.2-640.onnx"
+# model_path = "/home/faith/yolov5/yolov5n6-6.2-320.onnx"
+# model_path = "/home/faith/yolov5/yolov5n6-6.2-192.onnx"
+# model_path = '/home/faith/yolov5/exp4/weights/best.onnx'
 def infer_shapes(model: onnx.ModelProto) -> onnx.ModelProto:
     try:
         return onnx.shape_inference.infer_shapes(model)
@@ -72,12 +74,17 @@ def compute_flops(model_path: str, input_shape=(1,3,320,320)) -> Tuple[int,int]:
         "Resize": 1,            # 近似插值成本
         "Concat": 0,
         "Transpose": 0,
-        "Reshape": 0
+        "Reshape": 0,
+        "SiLU": 5, # ✅ 新增：Sigmoid(≈4) + Mul(≈1) 
+        "Swish": 5 # ✅ 有些模型用 Swish 表示 SiLU
     }
 
     for node in model.graph.node:
         op = node.op_type
         macs = 0
+
+        inputs = list(node.input) # ✅ 转换成普通 list 
+        outputs = list(node.output)
 
         if op == "Conv":
             if len(node.input) < 2:
@@ -101,7 +108,7 @@ def compute_flops(model_path: str, input_shape=(1,3,320,320)) -> Tuple[int,int]:
             # 但这里保持 macs 为乘加计数，后面 total_flops = total_macs*2 + extra_flops
 
         elif op in ("MatMul",):
-            a_name, b_name = (node.input + [None, None])[:2]
+            a_name, b_name = (inputs + [None, None])[:2]
             ash = smap.get(a_name)
             bsh = smap.get(b_name)
             if not ash or not bsh:

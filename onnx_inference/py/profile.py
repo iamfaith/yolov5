@@ -11,11 +11,14 @@ from typing import Tuple
 from aicmder import model_info
 
 model_path = "/home/faith/Yolov11-ONNX-Object-Detection/models/yolov11n.onnx"
+model_path = "/home/faith/Yolo-FastestV2/yolo-fastestv2.onnx"
 # model_path = "/home/faith/ONNX-YOLOv10-Object-Detection/models/yolov10n.onnx"
 # model_path = "/home/faith/yolov5/yolov5n6-6.2-640.onnx"
 # model_path = "/home/faith/yolov5/yolov5n6-6.2-320.onnx"
 # model_path = "/home/faith/yolov5/yolov5n6-6.2-192.onnx"
 # model_path = '/home/faith/yolov5/exp4/weights/best.onnx'
+model_path = '/home/faith/yolov5/exp4/weights/full_best.onnx'
+model_path = '/home/faith/yolov5/exp4/weights/transpose_best.onnx'
 def infer_shapes(model: onnx.ModelProto) -> onnx.ModelProto:
     try:
         return onnx.shape_inference.infer_shapes(model)

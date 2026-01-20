@@ -41,8 +41,10 @@ import cv2
 
 
 # Speed: 2.9ms preprocess, 59.2ms inference, 0.8ms postprocess per image at shape (1, 3, 640, 480)
-model = YOLO("yolo26n.pt")
- 
+# model = YOLO("yolo26n.pt")
+model = YOLO("yolo26n.onnx")
+model = YOLO('yolo12n.pt')
+
 # Speed: 3.9ms preprocess, 100.4ms inference, 0.7ms postprocess per image at shape (1, 3, 640, 480)
 # model = YOLO("yolo26s.pt") 
 
@@ -63,5 +65,8 @@ for result in results:
     xyxyn = result.boxes.xyxyn  # normalized
     names = [result.names[cls.item()] for cls in result.boxes.cls.int()]  # class name of each box
     confs = result.boxes.conf  # confidence score of each box
-    
+    print("Boxes (xyxy):", xyxy)
+    print("Class names:", names)
+    print("Confidence scores:", confs)    
+
 results[0].save(filename="bus_detected.jpg")  # 保存带框的图片

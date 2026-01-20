@@ -10,8 +10,8 @@ from utils.general import check_img_size, scale_boxes, draw_detections, colors, 
 
 
 img_size = [640, 640]
-img_size = [320, 320]
-img_size = [192, 192]
+# img_size = [320, 320]
+# img_size = [192, 192]
 #### 640
 # Average inference time: 20.29 ms over 2693 images
 # Total MACs: 2,279,526,400 (2.280 GMAC)
@@ -47,6 +47,9 @@ weights = "/home/faith/yolov5/yolov5n6-6.2-192.onnx"
 # Average inference time: 3.82 ms over 2693 images
 # weights = '/home/faith/yolov5/exp4/weights/full_best.onnx' # 10.78ms   raspberry 3b: 123.60 ms
 
+
+weights = "/home/faith/yolov5/yolo12n.onnx" 
+weights = "/home/faith/yolov5/yolo26n.onnx" 
 # weights = '/home/faith/yolov5/exp3/weights/best.onnx'
 # weights = '/home/faith/yolov5/yolov5s_relu.onnx' # rknn
 # weights = '/home/faith/yolov5/yolov5s.onnx' # rknn
@@ -109,7 +112,7 @@ def inference(source, write_images=True):
         #     if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
         #         break
 
-        # print(status)
+        print(status)
         # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
         if dataset.type == "image" and write_images:
             save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")

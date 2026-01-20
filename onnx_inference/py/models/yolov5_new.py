@@ -113,6 +113,7 @@ class YOLOv5:
             self.session = onnxruntime.InferenceSession(
                 model_path,
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+                # providers=["CPUExecutionProvider"]
             )
             # Get model info
             self.output_names = [x.name for x in self.session.get_outputs()]

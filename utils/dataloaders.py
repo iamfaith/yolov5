@@ -139,6 +139,15 @@ def create_dataloader(path,
     loader = DataLoader if image_weights else InfiniteDataLoader  # only DataLoader allows for attribute updates
     generator = torch.Generator()
     generator.manual_seed(0)
+
+    
+    #     # for testing
+    # from torch.utils.data import Subset 
+    # # 假设 val_dataset 已经构建好了 
+    # small_indices = list(range(128)) # 只取前 50 个样本 
+    # dataset = Subset(dataset, small_indices)
+    
+    
     return loader(dataset,
                   batch_size=batch_size,
                   shuffle=shuffle and sampler is None,

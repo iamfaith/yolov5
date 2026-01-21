@@ -54,6 +54,7 @@ weights = "/home/faith/yolov5/yolo26n.onnx"
 # weights = '/home/faith/yolov5/yolov5s_relu.onnx' # rknn
 # weights = '/home/faith/yolov5/yolov5s.onnx' # rknn
 # weights = '/home/faith/yolov5/yolov5n.onnx' # rknn
+weights = '/home/faith/yolov5/yolov8n.onnx' # rknn
 source = "/home/faith/fux.png"
 source = '/home/faith/yolov5/data/images/zidane.jpg'
 source = '/home/faith/yolov5/data/images/bus.jpg'
@@ -112,7 +113,7 @@ def inference(source, write_images=True):
         #     if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
         #         break
 
-        print(status)
+        # print(status)
         # print(f"postprocess Time: {(time() - start) * 1000:.2f} ms")
         if dataset.type == "image" and write_images:
             save_path = str(save_dir / f"frame_{dataset.frame:04d}.jpg")

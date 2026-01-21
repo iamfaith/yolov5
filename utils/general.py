@@ -805,6 +805,46 @@ def clip_coords(boxes, shape):
         boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, shape[0])  # y1, y2
 
 
+from utils.metrics import bbox_diou
+
+def diou_nms(boxes, scores, iou_thres=0.5):
+    keep = []
+    idxs = scores.argsort(descending=True)
+    while idxs.numel() > 0:
+        i = idxs[0]
+        keep.append(i.item())
+        if idxs.numel() == 1:
+            break
+        # 修复：把 ious 压缩成一维 
+        ious = bbox_diou(boxes[i].unsqueeze(0), boxes[idxs[1:]]).squeeze(0)
+        idxs = idxs[1:][ious <= iou_thres]
+    return torch.tensor(keep, device=boxes.device)
+
+# too slow: deprecated
+def soft_nms(boxes, scores, iou_thres=0.5, sigma=0.5, conf_thres=0.001):
+    keep = []
+    while boxes.size(0) > 0:
+        max_idx = scores.argmax()
+        max_box = boxes[max_idx]
+        max_score = scores[max_idx]
+        keep.append(max_idx.item())
+
+        boxes = torch.cat((boxes[:max_idx], boxes[max_idx+1:]))
+        scores = torch.cat((scores[:max_idx], scores[max_idx+1:]))
+
+        if boxes.size(0) == 0:
+            break
+
+        ious = box_iou(max_box.unsqueeze(0), boxes).squeeze(0)
+        scores = scores * torch.exp(-(ious ** 2) / sigma)
+
+        mask = scores > conf_thres
+        boxes, scores = boxes[mask], scores[mask]
+
+    return torch.tensor(keep, device=boxes.device)
+
+
+
 def non_max_suppression(prediction,
                         conf_thres=0.25,
                         iou_thres=0.45,
@@ -888,6 +928,13 @@ def non_max_suppression(prediction,
         # Batched NMS
         c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
         boxes, scores = x[:, :4] + c, x[:, 4]  # boxes (offset by class), scores
+
+        ############################### new
+        # 3.6ms NMS slow  2.6ms NMS
+        # i = diou_nms(boxes, scores, iou_thres)
+        # i = soft_nms(boxes, scores, iou_thres)
+        ############################### new
+        # 0.9ms NMS fast
         i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         if i.shape[0] > max_det:  # limit detections
             i = i[:max_det]

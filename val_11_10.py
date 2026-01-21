@@ -1,10 +1,21 @@
 from ultralytics import YOLO
 # model = YOLO('yolov10n.pt')
 # model = YOLO('yolo11n.pt')
-model = YOLO('yolo12n.pt')
+# model = YOLO('yolo12n.pt')
+model = YOLO('yolov8n.pt')
 # model = YOLO('yolo26n.pt')
-metrics = model.val(data='/home/faith/yolov5/data/coco_person.yaml', imgsz=640, batch=16, device='0', single_cls=True)
+metrics = model.val(data='/home/faith/yolov5/data/coco_person.yaml', imgsz=640, batch=16, device='0', single_cls=True, conf=0.15)
 print(metrics)
+
+
+# yolov8n
+# results_dict: {'metrics/precision(B)': 0.5056791322328187, 'metrics/recall(B)': 0.5602672357799017, 'metrics/mAP50(B)': 0.4462429265124468, 'metrics/mAP50-95(B)': 0.31068437183555064, 'fitness': 0.32424022730324026} # 0.01
+# results_dict: {'metrics/precision(B)': 0.5056791322328187, 'metrics/recall(B)': 0.5602672357799017, 'metrics/mAP50(B)': 0.45709882466661617, 'metrics/mAP50-95(B)': 0.33803507988408665, 'fitness': 0.34994145436233964}  # 0.15
+# results_dict: {'metrics/precision(B)': 0.5056791322328187, 'metrics/recall(B)': 0.5602672357799017, 'metrics/mAP50(B)': 0.4587756352022466, 'metrics/mAP50-95(B)': 0.343238316288136, 'fitness': 0.35479204817954707} 0.2
+# results_dict: {'metrics/precision(B)': 0.5056791322328187, 'metrics/recall(B)': 0.5602672357799017, 'metrics/mAP50(B)': 0.4585400098000162, 'metrics/mAP50-95(B)': 0.34699318977806765, 'fitness': 0.35814787178026253}  0.25
+# results_dict: {'metrics/precision(B)': 0.5056791322328187, 'metrics/recall(B)': 0.5602672357799017, 'metrics/mAP50(B)': 0.45797322592060813, 'metrics/mAP50-95(B)': 0.35009227273896565, 'fitness': 0.3608803680571299} 0.3
+# speed: {'preprocess': 0.1897520887548041, 'inference': 2.5938191563570565, 'loss': 0.0009121399730232306, 'postprocess': 1.0638899298187143}
+
 
 ############# yolov10n
 # results_dict: {'metrics/precision(B)': 0.5011575392511556, 'metrics/recall(B)': 0.5461808529682268, 'metrics/mAP50(B)': 0.45656625613181534, 'metrics/mAP50-95(B)': 0.3251184367267468, 'fitness': 0.3382632186672536}

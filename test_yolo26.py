@@ -42,13 +42,14 @@ import cv2
 
 # Speed: 2.9ms preprocess, 59.2ms inference, 0.8ms postprocess per image at shape (1, 3, 640, 480)
 # model = YOLO("yolo26n.pt")
-model = YOLO("yolo26n.onnx")
-model = YOLO('yolo12n.pt')
+# model = YOLO("yolo26n.onnx")
+# model = YOLO('yolo12n.pt')
+model = YOLO('yolov8n.pt')
 
 # Speed: 3.9ms preprocess, 100.4ms inference, 0.7ms postprocess per image at shape (1, 3, 640, 480)
 # model = YOLO("yolo26s.pt") 
 
-# model.export(format="onnx", opset=17, dynamic=False)
+model.export(format="onnx", opset=17, dynamic=False)
 
 # results = model.train(data="coco8.yaml", epochs=100, imgsz=640)
 

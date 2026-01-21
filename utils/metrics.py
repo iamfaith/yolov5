@@ -220,6 +220,38 @@ class ConfusionMatrix:
             print(' '.join(map(str, self.matrix[i])))
 
 
+
+def bbox_diou(box1, box2):
+    """
+    box1: (N, 4), box2: (M, 4) in xyxy format
+    """
+    b1_x1, b1_y1, b1_x2, b1_y2 = box1.unbind(1)
+    b2_x1, b2_y1, b2_x2, b2_y2 = box2.unbind(1)
+
+    inter = (torch.min(b1_x2[:, None], b2_x2) - torch.max(b1_x1[:, None], b2_x1)).clamp(0) * \
+            (torch.min(b1_y2[:, None], b2_y2) - torch.max(b1_y1[:, None], b2_y1)).clamp(0)
+
+    area1 = (b1_x2 - b1_x1) * (b1_y2 - b1_y1)
+    area2 = (b2_x2 - b2_x1) * (b2_y2 - b2_y1)
+    union = area1[:, None] + area2 - inter
+
+    iou = inter / (union + 1e-7)
+
+    # center distance
+    center_dist = ((b1_x1 + b1_x2) / 2 - (b2_x1 + b2_x2) / 2) ** 2 + \
+                  ((b1_y1 + b1_y2) / 2 - (b2_y1 + b2_y2) / 2) ** 2
+
+    # enclosing box
+    enclose_x1 = torch.min(b1_x1[:, None], b2_x1)
+    enclose_y1 = torch.min(b1_y1[:, None], b2_y1)
+    enclose_x2 = torch.max(b1_x2[:, None], b2_x2)
+    enclose_y2 = torch.max(b1_y2[:, None], b2_y2)
+    enclose_diag = (enclose_x2 - enclose_x1) ** 2 + (enclose_y2 - enclose_y1) ** 2 + 1e-7
+
+    diou = iou - center_dist / enclose_diag
+    return diou.clamp(0)
+
+
 def bbox_iou(box1, box2, xywh=True, GIoU=False, DIoU=False, CIoU=False, eps=1e-7):
     # Returns Intersection over Union (IoU) of box1(1,4) to box2(n,4)
 

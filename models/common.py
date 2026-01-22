@@ -191,6 +191,36 @@ class C3Ghost(C3):
         self.m = nn.Sequential(*(GhostBottleneck(c_, c_) for _ in range(n)))
 
 
+class SPP_3Kernel(nn.Module):
+    # Spatial Pyramid Pooling (SPP) layer https://arxiv.org/abs/1406.4729
+    def __init__(self, c1, c2):
+        super().__init__()
+        k = 3
+        c_ = c1 // 2  # hidden channels
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv(c_ * (k + 1), c2, 1, 1)
+        # 替代实现：用多个 MaxPool(k=3, s=1) 来模拟大核池化
+        # self.m = nn.ModuleList([
+        #     nn.Sequential(*[nn.MaxPool2d(kernel_size=3, stride=1, padding=1) for _ in range(2)]),  # k=5 -> 2层3x3
+        #     nn.Sequential(*[nn.MaxPool2d(kernel_size=3, stride=1, padding=1) for _ in range(4)]),  # k=9 -> 4层3x3
+        #     nn.Sequential(*[nn.MaxPool2d(kernel_size=3, stride=1, padding=1) for _ in range(6)])   # k=13 -> 6层3x3
+        # ])
+        self.m = nn.Sequential(*[nn.MaxPool2d(kernel_size=3, stride=1, padding=1) for _ in range(6)])
+
+      
+    def forward(self, x):
+        x = self.cv1(x)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')  # suppress torch 1.9.0 max_pool2d() warning
+            out = [x]
+            xi = x
+            for i, layer in enumerate(self.m):
+                xi = layer(xi)
+                if i in [1, 3, 5]:  # 对应第2、4、6层输出
+                    out.append(xi)
+            return self.cv2(torch.cat(out, dim=1))
+
+
 class SPP(nn.Module):
     # Spatial Pyramid Pooling (SPP) layer https://arxiv.org/abs/1406.4729
     def __init__(self, c1, c2, k=(5, 9, 13)):

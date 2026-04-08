@@ -264,6 +264,7 @@ def run(
 
         callbacks.run('on_val_batch_end')
 
+    i = 0
     # Compute metrics
     stats = [torch.cat(x, 0).cpu().numpy() for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
@@ -357,6 +358,7 @@ def parse_opt():
     
     # defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/yolov5n6-6.2.pt"], "device": "0", "conf_thres": 0.25, "iou_thres": 0.45, "single_cls": True, "batch_size": 32} 
     defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/exp4/weights/best.pt"], "device": "0", "conf_thres": 0.15, "iou_thres": 0.3, "single_cls": True, "batch_size": 64} 
+    defaults = {"task": "study", "data": "/home/faith/yolov5/data/coco_person.yaml", "weights": ["/home/faith/yolov5/best.pt"], "device": "0", "conf_thres": 0.15, "iou_thres": 0.3, "single_cls": True, "batch_size": 64} 
     parser.set_defaults(**defaults)
     
     opt = parser.parse_args()

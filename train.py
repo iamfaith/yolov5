@@ -17,6 +17,12 @@ Usage:
     /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python /home/faith/yolov5/train.py --data coco_person.yaml --weights '' --cfg yolov5n-ghost-v3.yaml --img 640 --batch 256
 
     /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python /home/faith/yolov5/train.py --data coco_person.yaml --weights /home/faith/yolov5/runs/train/exp3/weights/best.pt --cfg yolov5n-ghost-v3.yaml --img 640 --batch 256
+
+    
+    /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python /home/faith/yolov5/train.py --data coco_person.yaml --weights /home/faith/yolov5/runs/train/exp4/weights/best.pt --cfg yolov5n-ghost-v3-512.yaml --img 640 --batch 256 --workers 2
+    
+    
+    /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python /home/faith/yolov5/train.py --data coco_person.yaml --weights /home/faith/yolov5/runs/train/exp4/weights/best.pt --cfg yolov5n-ghost-v3-1024.yaml --img 640 --batch 256 --workers 2
 """
 
 import argparse

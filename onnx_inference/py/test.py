@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Tuple
 from time import time
 from models import YOLOv5_new as YOLOv5
+from models.yolov5 import YOLOv5 as YOLOv5
 # from models import YOLOv5_new_backup as YOLOv5
 from utils.general import check_img_size, scale_boxes, draw_detections, colors, increment_path, LoadMedia
 
@@ -55,12 +56,15 @@ weights = "/home/faith/yolov5/yolo26n.onnx"
 # weights = '/home/faith/yolov5/yolov5s.onnx' # rknn
 # weights = '/home/faith/yolov5/yolov5n.onnx' # rknn
 weights = '/home/faith/yolov5/yolov8n.onnx' # rknn
+
+weights = '/home/faith/yolov5/exp4/weights/best.onnx' 
+
 source = "/home/faith/fux.png"
 source = '/home/faith/yolov5/data/images/zidane.jpg'
-source = '/home/faith/yolov5/data/images/bus.jpg'
+# source = '/home/faith/yolov5/data/images/bus.jpg'
 # source = '/home/faith/yolov5/exp4/PR_curve.png'
 project = "test"
-conf_thres = 0.15
+conf_thres = 0.1
 iou_thres = 0.45
 max_det = 1000
 
@@ -81,7 +85,6 @@ def inference(source, write_images=True):
         image = resized_image.transpose(2, 0, 1)  # Convert from HWC -> CHW
         image = image[::-1]  # Convert BGR to RGB
         image = np.ascontiguousarray(image)
-        
         image = image.astype(np.float32) / 255.0  # Normalize the input
     
         start = time()
@@ -137,5 +140,5 @@ if times:
     avg_time = np.mean(times)
     print(f"Average inference time: {avg_time * 1000:.2f} ms over {len(times)} images")
   
-# inference_time = inference(source)
-# print(f"Total Time: {inference_time * 1000:.2f} ms")
+inference_time = inference(source)
+print(f"Total Time: {inference_time * 1000:.2f} ms")

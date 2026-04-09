@@ -9,10 +9,20 @@ import cv2
 import onnxruntime
 import numpy as np
 from typing import Tuple, List
-
+from time import time
 
 class YOLOv5:
-    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn') -> None:
+
+    def warmup(self, imgsz=(3, 640, 640)):
+        # Warmup model by running inference once
+        # im = np.zeros(imgsz)  # input
+        # im = im.astype(np.float32) / 255.0  # Normalize the input
+        # for _ in range(1):  #
+        #     self(im)  # warmup
+        pass
+    
+    
+    def __init__(self, model_path: str, conf_thres: float = 0.25, iou_thres: float = 0.45, max_det: int = 300, nms_mode: str = 'dnn', class_id = None, verbose=False) -> None:
         """YOLOv5 class initialization
 
         Args:
@@ -26,6 +36,8 @@ class YOLOv5:
         self.iou_threshold = iou_thres
         self.max_det = max_det
         self.nms_mode = nms_mode
+        self.class_id = class_id
+        self.verbose = verbose
 
         # YOLOv5 default anchors and strides
         
@@ -111,13 +123,16 @@ class YOLOv5:
         Returns:
             np.ndarray: HWC -> CHW, BGR to RGB, Normalize and Add batch dimension.
         """
-        image = image.transpose(2, 0, 1)  # Convert from HWC -> CHW
-        image = image[::-1]  # Convert BGR to RGB
-        image = np.ascontiguousarray(image)
-        image = image.astype(np.float32) / 255.0  # Normalize the input
-        image_tensor = image[np.newaxis, ...]  # Add batch dimension
+        # image = image.transpose(2, 0, 1)  # Convert from HWC -> CHW
+        # image = image[::-1]  # Convert BGR to RGB
+        # image = np.ascontiguousarray(image)
+        # image = image.astype(np.float32) / 255.0  # Normalize the input
+        # image_tensor = image[np.newaxis, ...]  # Add batch dimension
+        
+        if len(image.shape) == 3:
+            image = image[np.newaxis, ...]  # Add batch dimension
 
-        return image_tensor
+        return image
 
     def postprocess(self, prediction: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Post processing

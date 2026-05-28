@@ -956,7 +956,17 @@ def non_max_suppression(prediction,
 
 def strip_optimizer(f='best.pt', s=''):  # from utils.general import *; strip_optimizer()
     # Strip optimizer from 'f' to finalize training, optionally save as 's'
-    x = torch.load(f, map_location=torch.device('cpu'))
+    # x = torch.load(f, map_location=torch.device('cpu'))
+
+    # 兼容 PyTorch 新版/旧版的 torch.load
+    try:
+        # PyTorch >= 2.6
+        x = torch.load(f, map_location=torch.device('cpu'), weights_only=False)
+    except TypeError:
+        # PyTorch < 2.6 不支持 weights_only 参数
+        x = torch.load(f, map_location=torch.device('cpu'))
+
+
     if x.get('ema'):
         x['model'] = x['ema']  # replace model with ema
     for k in 'optimizer', 'best_fitness', 'wandb_id', 'ema', 'updates':  # keys

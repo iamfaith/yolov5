@@ -138,8 +138,10 @@ def export_onnx(model, im, file, opset, train, dynamic, simplify, prefix=colorst
             training=torch.onnx.TrainingMode.TRAINING if train else torch.onnx.TrainingMode.EVAL,
             do_constant_folding=not train,
             input_names=['images'],
-            # output_names=['output'],
-            output_names=output_names,
+            ###################################remove_sigmoid
+            output_names=['output'],
+            # output_names=output_names,
+            ###################################remove_sigmoid
             dynamic_axes={
                 'images': {
                     0: 'batch',

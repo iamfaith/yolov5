@@ -57,3 +57,7 @@ Source: Conversation with Copilot, 6/26/2024
 
 
 /home/faith/miniconda3/envs/torch_cuda_11.3/bin/python -m pip  install ffmpeg moviepy --upgrade
+
+
+
+检索 remove_sigmoid

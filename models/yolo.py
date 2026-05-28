@@ -61,8 +61,10 @@ class Detect(nn.Module):
             x[i] = self.m[i](x[i])  # conv
             if self.export:
                 y = x[i].sigmoid()
-                onnx_z.append(y) 
-                continue
+                ###################################remove_sigmoid
+                # onnx_z.append(y) 
+                # continue
+                ###################################remove_sigmoid
             
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
@@ -83,9 +85,11 @@ class Detect(nn.Module):
                     wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
                     y = torch.cat((xy, wh, conf), 4)
                 z.append(y.view(bs, -1, self.no))
-
-        if self.export:
-            return tuple(onnx_z)
+                
+###################################remove_sigmoid
+        # if self.export:
+        #     return tuple(onnx_z)
+###################################remove_sigmoid
 
         return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
 
